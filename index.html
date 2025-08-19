@@ -1,12 +1,151 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <title>Freelancer Forum</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="index.css" />
-    <script src="index.js" defer></script>
-  </head>
-  <body>
-    <div id="app"></div>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <title>Freelancer Forum</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 16px; }
+    h1 { margin: 0 0 8px; }
+    #app { border: 1px solid #ccc; padding: 12px; }
+    .controls { margin: 8px 0 12px; }
+    .controls button { margin-right: 6px; }
+    .avg { font-weight: bold; margin-bottom: 10px; }
+    .count { color: #555; font-size: 0.9em; margin: 6px 0; }
+    .card { border: 1px solid #ddd; padding: 8px; margin: 6px 0; }
+    .name { font-weight: bold; }
+    .role { color: #333; }
+    .rate { color: #000; }
+  </style>
+</head>
+<body>
+  <h1>Freelancer Forum</h1>
+
+  <div class="controls">
+    <button id="addOne">Add Freelancer</button>
+    <button id="shuffleAll">Shuffle All</button>
+    <button id="reset">Reset</button>
+  </div>
+
+  <div id="app" aria-live="polite"></div>
+
+  <script>
+    const NUM_FREELANCERS = 6;
+
+    const FIRST_NAMES = ["Avery","Noah","Riley","Maya","Kai","Rowan","Aria","Leo","Sage","Nova"];
+    const LAST_NAMES  = ["Kim","Patel","Nguyen","Santos","Cohen","Park","Lopez","Singh","Hansen","Okafor"];
+    const OCCUPATIONS = [
+      "Web Developer","Designer","Data Analyst","Copywriter","Illustrator",
+      "Video Editor","Mobile Dev","QA","SEO","Cloud"
+    ];
+
+    const RATE_RANGE_BY_ROLE = {
+      "Web Developer": [40, 100],
+      "Designer": [35, 90],
+      "Data Analyst": [35, 95],
+      "Copywriter": [20, 70],
+      "Illustrator": [25, 80],
+      "Video Editor": [25, 75],
+      "Mobile Dev": [45, 120],
+      "QA": [30, 70],
+      "SEO": [25, 80],
+      "Cloud": [60, 150],
+    };
+    const DEFAULT_RATE_RANGE = [25, 100];
+
+    const rand = (n) => Math.floor(Math.random() * n);
+    const pick = (arr) => arr[rand(arr.length)];
+    const dollars = (n) => `$${n.toFixed(2)}/hr`;
+
+    function randomRateFor(role) {
+      const [min, max] = RATE_RANGE_BY_ROLE[role] || DEFAULT_RATE_RANGE;
+      const value = Math.random() * (max - min) + min;
+      return Math.round(value / 5) * 5; 
+    }
+
+    function makeRandomFreelancer() {
+      const name = `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
+      const occupation = pick(OCCUPATIONS);
+      const rate = randomRateFor(occupation);
+      return { name, occupation, rate };
+    }
+
+    const state = {
+      freelancers: Array.from({ length: NUM_FREELANCERS }, makeRandomFreelancer),
+      averageRate: 0,
+    };
+
+    function averageRateOf(freelancers) {
+      if (!freelancers.length) return 0;
+      const total = freelancers.reduce((sum, f) => sum + Number(f.rate || 0), 0);
+      return total / freelancers.length;
+    }
+
+    state.averageRate = averageRateOf(state.freelancers);
+
+    function FreelancerItem(f) {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.innerHTML = `
+        <div class="name">${escapeHtml(f.name)}</div>
+        <div class="role">${escapeHtml(f.occupation)}</div>
+        <div class="rate">${dollars(f.rate)}</div>
+      `;
+      return el;
+    }
+
+    function FreelancerList(freelancers) {
+      const wrap = document.createElement("section");
+      const count = document.createElement("div");
+      count.className = "count";
+      count.textContent = freelancers.length + " freelancers";
+      wrap.appendChild(count);
+
+      freelancers.forEach((f) => wrap.appendChild(FreelancerItem(f)));
+      return wrap;
+    }
+
+    function AverageBadge(avg) {
+      const el = document.createElement("div");
+      el.className = "avg";
+      el.textContent = "Average hourly rate: " + dollars(avg);
+      return el;
+    }
+
+    function render() {
+      const $app = document.querySelector("#app");
+      $app.innerHTML = ""; 
+
+      $app.appendChild(AverageBadge(state.averageRate));
+      $app.appendChild(FreelancerList(state.freelancers));
+    }
+    render();
+    document.querySelector("#addOne").addEventListener("click", () => {
+      state.freelancers.push(makeRandomFreelancer());
+      state.averageRate = averageRateOf(state.freelancers);
+      render();
+    });
+
+    document.querySelector("#shuffleAll").addEventListener("click", () => {
+      state.freelancers = Array.from({ length: state.freelancers.length }, makeRandomFreelancer);
+      state.averageRate = averageRateOf(state.freelancers);
+      render();
+    });
+
+    document.querySelector("#reset").addEventListener("click", () => {
+      state.freelancers = Array.from({ length: NUM_FREELANCERS }, makeRandomFreelancer);
+      state.averageRate = averageRateOf(state.freelancers);
+      render();
+    });
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+  </script>
+</body>
 </html>
